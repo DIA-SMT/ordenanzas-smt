@@ -670,3 +670,22 @@ button.cite:disabled { cursor: default; }
 [data-theme="light"] .cmdk-ic, [data-theme="light"] .cmd-ic { background: rgba(0,0,0,0.05); }
 [data-theme="light"] .fchip.on, [data-theme="light"] .chat .composer button { color: #ffffff; }
 [data-theme="light"] .rcard .top .cap, [data-theme="light"] .cmd-k { background: rgba(0,0,0,0.05); }
+
+/* ============================================================================
+   v8 — logo IA más grande + pie "Desarrollado por la Dirección de IA"
+   ========================================================================== */
+.topbar .logo-dia { height: 40px; opacity: 1; }
+
+.appfoot {
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center; gap: 13px;
+  padding: 9px 20px; border-top: 1px solid var(--line); background: var(--ink-2);
+  font-size: 11.5px; color: var(--muted); z-index: 20;
+}
+.appfoot b { color: var(--text); font-weight: 600; }
+.appfoot img { height: 22px; opacity: 0.9; }
+
+@media (max-width: 720px) {
+  .topbar .logo-dia { height: 30px; }
+  .appfoot { font-size: 10px; padding: 9px 12px; gap: 9px; text-align: center; }
+  .appfoot img { height: 17px; }
+}

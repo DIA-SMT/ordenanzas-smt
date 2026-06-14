@@ -19,18 +19,18 @@ export default function Shell({ conceptos }: { conceptos: Concepto[] }) {
   const [selectedBloque, setSelectedBloque] = useState<number | null>(null);
   const [source, setSource] = useState<{ pagina: number; label?: string } | null>(null);
   const [palette, setPalette] = useState(false);
-  const [light, setLight] = useState(false);
+  const [light, setLight] = useState(true);
   const ready = useRef(false);
   const verify = (pagina: number, label?: string) => setSource({ pagina, label });
 
-  // ── tema claro/oscuro ──
+  // ── tema claro (por defecto) / oscuro ──
   useEffect(() => {
-    setLight(document.documentElement.dataset.theme === "light");
+    setLight(document.documentElement.dataset.theme !== "dark");
   }, []);
   const toggleTheme = () => {
     const next = !light;
     setLight(next);
-    document.documentElement.dataset.theme = next ? "light" : "";
+    document.documentElement.dataset.theme = next ? "light" : "dark";
     try {
       localStorage.setItem("theme", next ? "light" : "dark");
     } catch {}
@@ -156,6 +156,13 @@ export default function Shell({ conceptos }: { conceptos: Concepto[] }) {
           />
         )}
       </main>
+
+      <footer className="appfoot">
+        <span>
+          Desarrollado por la <b>Dirección de IA</b> · Municipalidad de San Miguel de Tucumán
+        </span>
+        <img src="/logo-dia.png" alt="Dirección de IA" />
+      </footer>
 
       {source && (
         <SourceViewer pagina={source.pagina} label={source.label} onClose={() => setSource(null)} />

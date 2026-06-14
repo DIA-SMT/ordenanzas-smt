@@ -1,8 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import artCoords from "@/data/art_coords.json";
 
 const TOTAL = 48;
 const src = (n: number) => `/paginas/p-${String(n).padStart(2, "0")}.jpg`;
+const COORDS = artCoords as Record<string, { art: string; top: number; bottom: number }[]>;
 
 export default function SourceViewer({
   pagina,
@@ -15,6 +17,13 @@ export default function SourceViewer({
 }) {
   const [page, setPage] = useState(Math.min(Math.max(pagina || 1, 1), TOTAL));
   const [zoom, setZoom] = useState(false);
+
+  const targetArt = useMemo(() => (label ? label.match(/(\d+)/)?.[1] ?? null : null), [label]);
+  const hl = useMemo(() => {
+    if (!targetArt) return null;
+    const arts = COORDS[String(page)] ?? [];
+    return arts.find((a) => a.art === targetArt) ?? null;
+  }, [page, targetArt]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -57,9 +66,22 @@ export default function SourceViewer({
             ‹
           </button>
           <div className={`src-imgwrap ${zoom ? "zoom" : ""}`} onClick={() => setZoom((z) => !z)}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={src(page)} alt={`Ordenanza 5487/2025 — página ${page}`} />
-            <span className="src-zoomhint">{zoom ? "Clic para reducir" : "Clic para ampliar"}</span>
+            <div className="src-figure">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={src(page)} alt={`Ordenanza 5487/2025 — página ${page}`} />
+              {hl && (
+                <div
+                  className="src-hl"
+                  style={{ top: `${hl.top * 100}%`, height: `${(hl.bottom - hl.top) * 100}%` }}
+                >
+                  <span className="src-hl-tag">Art. {hl.art}</span>
+                </div>
+              )}
+            </div>
+            <span className="src-zoomhint">
+              {hl ? "Artículo resaltado · " : ""}
+              {zoom ? "Clic para reducir" : "Clic para ampliar"}
+            </span>
           </div>
           <button
             className="src-nav next"

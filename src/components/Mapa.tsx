@@ -28,14 +28,18 @@ interface Blk {
 export default function Mapa({
   conceptos,
   onOpenBloque,
+  onOpenConcept,
 }: {
   conceptos: Concepto[];
   onOpenBloque: (bloque: number) => void;
+  onOpenConcept?: (c: Concepto) => void;
 }) {
   const [filterSens, setFilterSens] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const tmRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 820, h: 540 });
+  const [hover, setHover] = useState<{ b: number; left: number; top: number } | null>(null);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 60);
@@ -89,6 +93,26 @@ export default function Mapa({
         className={`tile ${sm ? "sm" : ""} ${isDim(dom) ? "dim" : ""}`}
         style={{ "--i": i } as React.CSSProperties}
         onClick={() => onOpenBloque(b)}
+        onMouseMove={(e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          e.currentTarget.style.setProperty("--mx", `${e.clientX - r.left}px`);
+          e.currentTarget.style.setProperty("--my", `${e.clientY - r.top}px`);
+        }}
+        onMouseEnter={(e) => {
+          if (isNarrow) return;
+          const r = e.currentTarget.getBoundingClientRect();
+          if (hoverTimer.current) clearTimeout(hoverTimer.current);
+          hoverTimer.current = setTimeout(() => {
+            const W = 300;
+            const left = r.right + 12 + W > window.innerWidth ? r.left - W - 12 : r.right + 12;
+            const top = Math.min(r.top, window.innerHeight - 250);
+            setHover({ b, left: Math.max(8, left), top: Math.max(8, top) });
+          }, 170);
+        }}
+        onMouseLeave={() => {
+          if (hoverTimer.current) clearTimeout(hoverTimer.current);
+          hoverTimer.current = setTimeout(() => setHover(null), 160);
+        }}
       >
         <span className="bar" style={{ background: SENS_COLOR[dom] }} />
         <span className="bid">{String(b).padStart(2, "0")}</span>
@@ -106,7 +130,10 @@ export default function Mapa({
     );
   };
 
+  const hoverBlk = hover ? blocks.find((x) => x.b === hover.b) : null;
+
   return (
+    <>
     <div className="mapa-wrap">
       <div className="mapa">
         <div className="mapa-head">
@@ -241,5 +268,45 @@ export default function Mapa({
         </div>
       </aside>
     </div>
+
+    {hover && hoverBlk && (
+      <div
+        className="tile-pop"
+        style={{ left: hover.left, top: hover.top }}
+        onMouseEnter={() => {
+          if (hoverTimer.current) clearTimeout(hoverTimer.current);
+        }}
+        onMouseLeave={() => setHover(null)}
+      >
+        <div className="tp-h">
+          <b>{BLOQUE_CORTO[hover.b]}</b>
+          <span>{hoverBlk.rows.length} conceptos</span>
+        </div>
+        <div className="tp-sens">
+          {(["Alta", "Media", "Baja"] as const).map((k) => {
+            const n = hoverBlk.rows.filter((r) => r.sensibilidad === k).length;
+            return (
+              <span key={k} style={{ color: SENS_COLOR[k] }}>
+                ● {n} {k.toLowerCase()}
+              </span>
+            );
+          })}
+        </div>
+        <div className="tp-list">
+          {[...hoverBlk.rows]
+            .sort((a, b) => (b.valor_urbanos ?? 0) - (a.valor_urbanos ?? 0))
+            .slice(0, 3)
+            .map((c) => (
+              <button key={c.id} className="tp-item" onClick={() => onOpenConcept?.(c)}>
+                <span className="tp-art">{c.articulo}</span>
+                <span className="tp-act">{c.actividad}</span>
+                {c.valor_urbanos != null && <span className="chip val">{c.valor_urbanos} U</span>}
+              </button>
+            ))}
+        </div>
+        <div className="tp-foot">Clic para abrir · {hoverBlk.rows.length} conceptos en total</div>
+      </div>
+    )}
+    </>
   );
 }

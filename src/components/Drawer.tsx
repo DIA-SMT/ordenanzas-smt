@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { BLOQUES, pesos, semaforoClase, sensClase, type Concepto } from "@/lib/blocks";
 
 function Sem({ nivel, tipo }: { nivel: string; tipo: "claridad" | "sensibilidad" | "confianza" }) {
@@ -72,6 +73,14 @@ export default function Drawer({
   onVerify: (pagina: number, label?: string) => void;
 }) {
   const rows = bloqueId != null ? conceptos.filter((c) => c.bloque_id === bloqueId) : [];
+  const [copied, setCopied] = useState(false);
+  const copyLink = () => {
+    try {
+      navigator.clipboard?.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {}
+  };
 
   return (
     <>
@@ -96,6 +105,11 @@ export default function Drawer({
                 <div style={{ fontSize: 12, color: "var(--gris)" }}>{rows.length} conceptos en este bloque</div>
               </div>
             </>
+          )}
+          {concepto && (
+            <button className="x share" onClick={copyLink} title="Copiar enlace a este concepto" aria-label="Copiar enlace">
+              {copied ? "✓" : "⎘"}
+            </button>
           )}
           <button className="x" onClick={onClose} aria-label="Cerrar">×</button>
         </div>

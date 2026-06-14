@@ -1,6 +1,8 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BLOQUES, BLOQUE_CORTO, sensClase, type Concepto } from "@/lib/blocks";
+import { squarify } from "@/lib/treemap";
+import CountUp from "./CountUp";
 
 const SENS_COLOR: Record<string, string> = {
   Alta: "var(--rojo)",
@@ -16,82 +18,11 @@ function dominantSens(rows: Concepto[]) {
   return "Baja";
 }
 
-/** Dona SVG interactiva: hover resalta, clic filtra. */
-function Donut({
-  data,
-  selected,
-  onSelect,
-}: {
-  data: { key: string; value: number; color: string }[];
-  selected: string | null;
-  onSelect: (k: string | null) => void;
-}) {
-  const [hover, setHover] = useState<string | null>(null);
-  const total = data.reduce((s, d) => s + d.value, 0) || 1;
-  const r = 52;
-  const C = 2 * Math.PI * r;
-  let offset = 0;
-  const active = hover ?? selected;
-  const activeSeg = data.find((d) => d.key === active);
-
-  return (
-    <div className="donut-wrap">
-      <svg viewBox="0 0 140 140" className="donut">
-        <circle cx="70" cy="70" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="16" />
-        {data.map((d) => {
-          const frac = d.value / total;
-          const len = frac * C;
-          const dash = `${len} ${C - len}`;
-          const seg = (
-            <circle
-              key={d.key}
-              cx="70"
-              cy="70"
-              r={r}
-              fill="none"
-              stroke={d.color}
-              strokeWidth={active === d.key ? 20 : 16}
-              strokeDasharray={dash}
-              strokeDashoffset={-offset}
-              transform="rotate(-90 70 70)"
-              style={{
-                cursor: "pointer",
-                opacity: active && active !== d.key ? 0.32 : 1,
-                transition: "opacity .18s, stroke-width .18s",
-                filter: active === d.key ? `drop-shadow(0 0 6px ${d.color})` : "none",
-              }}
-              onMouseEnter={() => setHover(d.key)}
-              onMouseLeave={() => setHover(null)}
-              onClick={() => onSelect(selected === d.key ? null : d.key)}
-            />
-          );
-          offset += len;
-          return seg;
-        })}
-        <text x="70" y="64" textAnchor="middle" className="donut-num">
-          {activeSeg ? activeSeg.value : total}
-        </text>
-        <text x="70" y="82" textAnchor="middle" className="donut-lab">
-          {activeSeg ? `${Math.round((activeSeg.value / total) * 100)}%` : "TOTAL"}
-        </text>
-      </svg>
-      <div className="donut-legend">
-        {data.map((d) => (
-          <button
-            key={d.key}
-            className={`dl ${selected === d.key ? "on" : ""}`}
-            onMouseEnter={() => setHover(d.key)}
-            onMouseLeave={() => setHover(null)}
-            onClick={() => onSelect(selected === d.key ? null : d.key)}
-          >
-            <span className="dl-dot" style={{ background: d.color }} />
-            <span className="dl-k">{d.key}</span>
-            <span className="dl-v">{d.value}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+interface Blk {
+  b: number;
+  rows: Concepto[];
+  dom: string;
+  value: number;
 }
 
 export default function Mapa({
@@ -102,6 +33,24 @@ export default function Mapa({
   onOpenBloque: (bloque: number) => void;
 }) {
   const [filterSens, setFilterSens] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const tmRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ w: 820, h: 540 });
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 60);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    const el = tmRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      if (el.clientWidth > 0) setSize({ w: el.clientWidth, h: el.clientHeight });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const stats = useMemo(() => {
     const byBloque: Record<number, Concepto[]> = {};
@@ -114,25 +63,56 @@ export default function Mapa({
     return { byBloque, sens, caps, aVerificar, maxBloque };
   }, [conceptos]);
 
-  const ordered = Object.keys(BLOQUES)
+  const blocks: Blk[] = Object.keys(BLOQUES)
     .map(Number)
-    .map((b) => ({ b, rows: stats.byBloque[b] ?? [], dom: dominantSens(stats.byBloque[b] ?? []) }));
+    .map((b) => {
+      const rows = stats.byBloque[b] ?? [];
+      return { b, rows, dom: dominantSens(rows), value: rows.length };
+    });
 
-  const donutData = [
-    { key: "Alta", value: stats.sens.Alta, color: "var(--rojo)" },
-    { key: "Media", value: stats.sens.Media, color: "var(--ambar)" },
-    { key: "Baja", value: stats.sens.Baja, color: "var(--verde)" },
+  const isNarrow = size.w < 560;
+  const rects = useMemo(() => squarify(blocks, size.w, size.h), [blocks, size]);
+  const totalArea = size.w * size.h;
+  const isDim = (dom: string) => filterSens != null && dom !== filterSens;
+
+  const total = conceptos.length;
+  const sensData = [
+    { k: "Alta", v: stats.sens.Alta, c: "var(--rojo)" },
+    { k: "Media", v: stats.sens.Media, c: "var(--ambar)" },
+    { k: "Baja", v: stats.sens.Baja, c: "var(--verde)" },
   ];
 
-  const isDim = (dom: string) => filterSens != null && dom !== filterSens;
+  const TileInner = ({ b, rows, dom, i, sm }: { b: number; rows: Concepto[]; dom: string; i: number; sm: boolean }) => {
+    const pct = Math.round((rows.length / stats.maxBloque) * 100);
+    return (
+      <div
+        className={`tile ${sm ? "sm" : ""} ${isDim(dom) ? "dim" : ""}`}
+        style={{ "--i": i } as React.CSSProperties}
+        onClick={() => onOpenBloque(b)}
+      >
+        <span className="bar" style={{ background: SENS_COLOR[dom] }} />
+        <span className="bid">{String(b).padStart(2, "0")}</span>
+        <span className="nm">{BLOQUE_CORTO[b]}</span>
+        <span className="ct">
+          <span className="dot pulse" style={{ background: SENS_COLOR[dom] }} />
+          <b><CountUp end={rows.length} /></b> <i>conceptos</i>
+        </span>
+        {!sm && (
+          <span className="meter">
+            <span style={{ width: mounted ? `${pct}%` : 0 }} />
+          </span>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="mapa-wrap">
       <div className="mapa">
         <div className="mapa-head">
           <p className="lead">
-            Cada mosaico es un <b>bloque tributario</b>. El punto indica la <b>sensibilidad ciudadana</b>;
-            la barra, su peso relativo. Tocá un bloque para ver la ficha.
+            Cada bloque ocupa un área <b>proporcional a su cantidad de conceptos</b>. El color indica la
+            <b> sensibilidad ciudadana</b>. Tocá un bloque para ver la ficha.
           </p>
           {filterSens && (
             <button className="clearfilter" onClick={() => setFilterSens(null)}>
@@ -140,64 +120,100 @@ export default function Mapa({
             </button>
           )}
         </div>
-        <div className="tiles">
-          {ordered.map(({ b, rows, dom }, i) => {
-            const pct = Math.round((rows.length / stats.maxBloque) * 100);
-            const cls = sensClase(dom);
-            return (
-              <div
-                key={b}
-                className={`tile ${isDim(dom) ? "dim" : ""}`}
-                style={{ "--i": i, "--pct": `${pct}%` } as React.CSSProperties}
-                onClick={() => onOpenBloque(b)}
-              >
-                <span className="bar" style={{ background: SENS_COLOR[dom] }} />
-                <span className="bid">{String(b).padStart(2, "0")}</span>
-                <span className="nm">{BLOQUE_CORTO[b]}</span>
-                <span className="ct">
-                  <span className="dot pulse" style={{ background: SENS_COLOR[dom] }} />
-                  <b>{rows.length}</b> conceptos
+
+        {/* Cinta de sensibilidad 100% */}
+        <div className="ribbon">
+          <div className="ribbon-bar">
+            {sensData.map((s) => {
+              const pct = Math.round((s.v / total) * 100);
+              return (
+                <button
+                  key={s.k}
+                  className={`ribbon-seg ${filterSens && filterSens !== s.k ? "dim" : ""}`}
+                  style={{ flexGrow: mounted ? s.v : 0.0001, background: s.c }}
+                  onClick={() => setFilterSens(filterSens === s.k ? null : s.k)}
+                  title={`Sensibilidad ${s.k}: ${s.v} conceptos (${pct}%)`}
+                >
+                  <span className="rs-k">{s.k}</span>
+                  <span className="rs-v">{pct}%</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="ribbon-cap">
+            <span className="info-wrap">
+              Perfil de sensibilidad ciudadana
+              <span className="info" tabIndex={0} role="note" aria-label="Qué mide la sensibilidad ciudadana">
+                i
+                <span className="tip">
+                  <b>Clasificación analítica, no normativa.</b> Estima el impacto de cada concepto en la
+                  ciudadanía —por su efecto en el bolsillo, su alcance y su carga social— en tres niveles:
+                  <b> Alta</b>, <b>Media</b> y <b>Baja</b>. Orienta la comunicación y las prioridades de
+                  gestión; <b>no surge del texto de la ordenanza</b> y es revisable.
                 </span>
-                <span className="meter"><span /></span>
-              </div>
-            );
-          })}
+              </span>
+            </span>
+            <span>{total} conceptos · tocá un tramo para filtrar</span>
+          </div>
+        </div>
+
+        {/* Treemap (desktop) / grilla (móvil) */}
+        <div className={`treemap ${isNarrow ? "grid" : ""}`} ref={tmRef}>
+          {isNarrow
+            ? blocks.map(({ b, rows, dom }, i) => (
+                <div className="tm-grid-cell" key={b}>
+                  <TileInner b={b} rows={rows} dom={dom} i={i} sm={false} />
+                </div>
+              ))
+            : rects.map((r, i) => {
+                const sm = (r.w * r.h) / totalArea < 0.05 || (r.item.value as number) <= 2;
+                return (
+                  <div
+                    className="tm-cell"
+                    key={r.item.b as number}
+                    style={{ left: r.x, top: r.y, width: r.w, height: r.h }}
+                  >
+                    <TileInner
+                      b={r.item.b as number}
+                      rows={r.item.rows as Concepto[]}
+                      dom={r.item.dom as string}
+                      i={i}
+                      sm={sm}
+                    />
+                  </div>
+                );
+              })}
         </div>
       </div>
 
       <aside className="sidepanel">
         <div className="kpi-row">
           <div className="kpi">
-            <div className="n">{conceptos.length}</div>
+            <div className="n"><CountUp end={conceptos.length} /></div>
             <div className="l">Conceptos relevados</div>
           </div>
           <div className="kpi">
-            <div className="n">{stats.caps}</div>
+            <div className="n"><CountUp end={stats.caps} /></div>
             <div className="l">Capítulos</div>
           </div>
           <div className="kpi" style={{ borderTopColor: "var(--rojo)" }}>
-            <div className="n">{stats.sens.Alta}</div>
+            <div className="n"><CountUp end={stats.sens.Alta} /></div>
             <div className="l">Alta sensibilidad</div>
           </div>
           <div className="kpi" style={{ borderTopColor: "var(--ambar)" }}>
-            <div className="n">{stats.aVerificar}</div>
+            <div className="n"><CountUp end={stats.aVerificar} /></div>
             <div className="l">A verificar (OCR)</div>
           </div>
         </div>
 
         <div className="panel-card">
-          <h4>Sensibilidad ciudadana · tocá para filtrar</h4>
-          <Donut data={donutData} selected={filterSens} onSelect={setFilterSens} />
-        </div>
-
-        <div className="panel-card">
           <h4>Conceptos por bloque</h4>
           <div className="barchart">
-            {ordered
+            {blocks
               .slice()
               .sort((a, b) => b.rows.length - a.rows.length)
               .map(({ b, rows, dom }) => {
-                const pct = Math.round((rows.length / conceptos.length) * 100);
+                const pct = Math.round((rows.length / total) * 100);
                 return (
                   <div
                     key={b}
@@ -212,7 +228,7 @@ export default function Mapa({
                       <span
                         className="fill"
                         style={{
-                          width: `${(rows.length / stats.maxBloque) * 100}%`,
+                          width: mounted ? `${(rows.length / stats.maxBloque) * 100}%` : 0,
                           background: `linear-gradient(90deg, ${SENS_COLOR[dom]}66, ${SENS_COLOR[dom]})`,
                         }}
                       />

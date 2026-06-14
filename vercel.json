@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["iad1"],
+  "functions": {
+    "app/api/chat/route.ts": { "maxDuration": 60 },
+    "app/api/normativa/upload/route.ts": { "maxDuration": 120 }
+  }
+}

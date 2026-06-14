@@ -1,0 +1,27 @@
+{
+  "name": "ordenanza-smt",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "setup:db": "node scripts/setup-db.mjs",
+    "ingest": "node scripts/reload-and-ingest.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.8",
+    "mammoth": "^1.9.1",
+    "next": "^16.2.9",
+    "pdf-parse": "^1.1.1",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "pg": "^8.13.1",
+    "typescript": "^5.8.3"
+  }
+}

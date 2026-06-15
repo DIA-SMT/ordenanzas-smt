@@ -760,3 +760,12 @@ button.cite:disabled { cursor: default; }
 
 /* card de chat expandida (desktop) */
 .cw-panel.expanded { width: 560px; height: min(760px, calc(100vh - 96px)); }
+
+/* disclaimer de montos (valor del Urbano) */
+.price-note {
+  font-size: 11px; color: var(--ambar); background: rgba(255, 180, 84, 0.09);
+  border: 1px solid rgba(255, 180, 84, 0.3); border-radius: 9px; padding: 8px 11px;
+  margin-top: 10px; line-height: 1.5;
+}
+.price-note b { color: var(--text); font-weight: 600; }
+.price-note.big { font-size: 12.5px; padding: 13px 16px; margin: 0 0 16px; }

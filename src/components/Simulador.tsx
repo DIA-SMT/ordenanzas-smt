@@ -195,10 +195,11 @@ export default function Simulador({ onVerify }: { onVerify: (pagina: number, lab
     <VerifyCtx.Provider value={onVerify}>
       <div className="scroll">
         <div className="sim">
-          <p style={{ color: "var(--gris)", fontSize: 13, margin: "0 0 14px" }}>
-            Calculadoras orientativas basadas en las alícuotas y mínimos de la ordenanza. Los montos son estimativos:
-            el texto oficial y la liquidación municipal prevalecen. Cada resultado enlaza a la página de la norma.
-          </p>
+          <div className="price-note big">
+            <b>⚠ Sobre los montos:</b> se calculan con <b>1 Urbano = $23,00</b> (Art. 1° de la Ordenanza 5487/2025).
+            Ese valor puede haberse <b>actualizado por una norma posterior</b>: confirmá la unidad vigente en la
+            Municipalidad antes de usarlo. Las alícuotas y los valores en Urbanos son los de la ordenanza; el peso es solo una referencia.
+          </div>
           <div className="grid">
             <Inmobiliario />
             <TEM />

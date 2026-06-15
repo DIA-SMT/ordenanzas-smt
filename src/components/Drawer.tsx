@@ -36,6 +36,12 @@ function ConceptDetail({ c, onVerify }: { c: Concepto; onVerify: (p: number, lab
         <Sem nivel={c.sensibilidad} tipo="sensibilidad" />
         {dud && <Sem nivel={c.confianza} tipo="confianza" />}
       </div>
+      {c.valor_pesos != null && (
+        <div className="price-note">
+          El monto en pesos surge de <b>1 U = $23,00</b> (Art. 1°). El valor del Urbano puede haberse actualizado por
+          norma posterior — confirmá la unidad vigente.
+        </div>
+      )}
 
       {open && (
         <>

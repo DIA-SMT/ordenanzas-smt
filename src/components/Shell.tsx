@@ -9,6 +9,7 @@ import NormativaPanel from "./NormativaPanel";
 import Drawer from "./Drawer";
 import SourceViewer from "./SourceViewer";
 import CommandPalette from "./CommandPalette";
+import ChatWidget from "./ChatWidget";
 
 type Tab = "mapa" | "buscador" | "simulador" | "asistente" | "normativa";
 const TABS: Tab[] = ["mapa", "buscador", "simulador", "asistente", "normativa"];
@@ -156,6 +157,8 @@ export default function Shell({ conceptos }: { conceptos: Concepto[] }) {
           />
         )}
       </main>
+
+      <ChatWidget onVerify={verify} hide={tab === "asistente"} />
 
       <footer className="appfoot">
         <span>

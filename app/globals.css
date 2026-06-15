@@ -740,4 +740,23 @@ button.cite:disabled { cursor: default; }
   .cw-launch-tx { display: none; }
   .cw-launch-ic { font-size: 14px; background: none; padding: 0; }
   .cw-panel { right: 0; left: 0; bottom: 0; width: 100%; max-width: 100%; height: 84vh; border-radius: 16px 16px 0 0; }
+  .cw-panel.expanded { height: 94vh; }
 }
+
+/* ============================================================================
+   v10 — ficha con detalle expandible (menos ruido) + card de chat expandible
+   ========================================================================== */
+.concept .ctab { width: 100%; font-size: 12.5px; margin-top: 12px; border-collapse: collapse; }
+.concept .ctab td { color: var(--muted); padding: 5px 12px 5px 0; vertical-align: top; line-height: 1.45; }
+.concept .ctab td:first-child { white-space: nowrap; width: 1%; }
+.concept .ctab td:last-child { color: var(--text); }
+.concept-acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 13px; }
+.concept-acts .verify-btn { margin-top: 0; }
+.more-btn {
+  font-family: var(--mono); font-size: 11px; color: var(--muted); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 9px; padding: 8px 13px; transition: all .15s;
+}
+.more-btn:hover { color: var(--text); border-color: var(--line-2); background: var(--panel-2); }
+
+/* card de chat expandida (desktop) */
+.cw-panel.expanded { width: 560px; height: min(760px, calc(100vh - 96px)); }

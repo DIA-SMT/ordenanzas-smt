@@ -10,6 +10,7 @@ function Sem({ nivel, tipo }: { nivel: string; tipo: "claridad" | "sensibilidad"
 function ConceptDetail({ c, onVerify }: { c: Concepto; onVerify: (p: number, label?: string) => void }) {
   const dud = c.confianza === "Dudosa" || c.confianza === "Media";
   const label = `${c.articulo}${c.inciso && c.inciso !== "—" ? " " + c.inciso : ""}`;
+  const [open, setOpen] = useState(false);
   const rows: [string, string | null][] = [
     ["Hecho imponible", c.hecho],
     ["Sujeto obligado", c.sujeto],
@@ -18,7 +19,8 @@ function ConceptDetail({ c, onVerify }: { c: Concepto; onVerify: (p: number, lab
     ["Momento de pago", c.momento_pago],
     ["Área municipal", c.area],
     ["Trámite / documento", c.tramite],
-  ];
+  ].filter(([, v]) => v && v !== "—") as [string, string][];
+
   return (
     <div className={`concept ${dud ? "dudosa" : ""}`}>
       <div className="ch">
@@ -31,28 +33,38 @@ function ConceptDetail({ c, onVerify }: { c: Concepto; onVerify: (p: number, lab
       <div className="vals">
         {c.valor_urbanos != null && <span className="chip val">{c.valor_urbanos} U · {pesos(c.valor_pesos)}</span>}
         {c.alicuota && <span className="chip val">{c.alicuota}</span>}
-        <Sem nivel={c.claridad} tipo="claridad" />
         <Sem nivel={c.sensibilidad} tipo="sensibilidad" />
-        <Sem nivel={c.confianza} tipo="confianza" />
+        {dud && <Sem nivel={c.confianza} tipo="confianza" />}
       </div>
-      <table style={{ width: "100%", fontSize: 12.5, marginTop: 8, borderCollapse: "collapse" }}>
-        <tbody>
-          {rows.map(([k, v]) =>
-            v && v !== "—" ? (
-              <tr key={k}>
-                <td style={{ color: "var(--gris)", padding: "3px 10px 3px 0", verticalAlign: "top", whiteSpace: "nowrap" }}>{k}</td>
-                <td style={{ padding: "3px 0" }}>{v}</td>
-              </tr>
-            ) : null,
-          )}
-        </tbody>
-      </table>
-      {c.observaciones && <div className="obs">⚠ {c.observaciones}</div>}
-      {c.pagina != null && (
-        <button className="verify-btn" onClick={() => onVerify(c.pagina!, label)}>
-          <span className="vico">⤓</span> Ver en la norma · pág. {c.pagina}
-        </button>
+
+      {open && (
+        <>
+          <table className="ctab">
+            <tbody>
+              {rows.map(([k, v]) => (
+                <tr key={k}>
+                  <td>{k}</td>
+                  <td>{v}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {c.observaciones && <div className="obs">⚠ {c.observaciones}</div>}
+        </>
       )}
+
+      <div className="concept-acts">
+        {rows.length > 0 && (
+          <button className="more-btn" onClick={() => setOpen((o) => !o)}>
+            {open ? "Ver menos ▴" : "Ver detalle completo ▾"}
+          </button>
+        )}
+        {c.pagina != null && (
+          <button className="verify-btn" onClick={() => onVerify(c.pagina!, label)}>
+            <span className="vico">⤓</span> Ver en la norma · pág. {c.pagina}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

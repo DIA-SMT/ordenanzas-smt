@@ -33,16 +33,20 @@ function grounding(citas: Cita[] | undefined) {
 }
 
 export default function ChatWidget({
+  open,
+  onOpenChange,
   onVerify,
   hide,
 }: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
   onVerify: (pagina: number, label?: string) => void;
   hide?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -111,14 +115,14 @@ export default function ChatWidget({
   return (
     <>
       {!open && (
-        <button className="cw-launch" onClick={() => setOpen(true)} aria-label="Abrir asistente">
+        <button className="cw-launch" onClick={() => onOpenChange(true)} aria-label="Abrir asistente">
           <span className="cw-launch-ic">IA</span>
           <span className="cw-launch-tx">Consultar la ordenanza</span>
         </button>
       )}
 
       {open && (
-        <div className="cw-panel">
+        <div className={`cw-panel ${expanded ? "expanded" : ""}`}>
           <div className="cw-head">
             <div className="cw-title">
               <span className="cw-dot" />
@@ -128,7 +132,10 @@ export default function ChatWidget({
               {msgs.length > 0 && (
                 <button onClick={() => setMsgs([])} title="Nueva consulta">⟲</button>
               )}
-              <button onClick={() => setOpen(false)} title="Minimizar" aria-label="Cerrar">✕</button>
+              <button onClick={() => setExpanded((e) => !e)} title={expanded ? "Reducir" : "Expandir"} aria-label="Expandir">
+                {expanded ? "⤡" : "⤢"}
+              </button>
+              <button onClick={() => onOpenChange(false)} title="Minimizar" aria-label="Cerrar">✕</button>
             </div>
           </div>
 

@@ -20,9 +20,39 @@ export default function Shell({ conceptos }: { conceptos: Concepto[] }) {
   const [selectedBloque, setSelectedBloque] = useState<number | null>(null);
   const [source, setSource] = useState<{ pagina: number; label?: string } | null>(null);
   const [palette, setPalette] = useState(false);
+  const [widgetOpen, setWidgetOpen] = useState(false);
   const [light, setLight] = useState(true);
   const ready = useRef(false);
+
+  // ── control centralizado: una sola cosa abierta a la vez ──
   const verify = (pagina: number, label?: string) => setSource({ pagina, label });
+  const goTab = (t: Tab) => {
+    setTab(t);
+    setSelected(null);
+    setSelectedBloque(null);
+    setSource(null);
+    setPalette(false);
+    setWidgetOpen(false);
+  };
+  const openConcept = (c: Concepto) => {
+    setSelected(c);
+    setSelectedBloque(null);
+    setPalette(false);
+    setWidgetOpen(false);
+  };
+  const openBloque = (b: number) => {
+    setSelectedBloque(b);
+    setSelected(null);
+    setWidgetOpen(false);
+  };
+  const changeWidget = (v: boolean) => {
+    setWidgetOpen(v);
+    if (v) {
+      setSelected(null);
+      setSelectedBloque(null);
+      setPalette(false);
+    }
+  };
 
   // ── tema claro (por defecto) / oscuro ──
   useEffect(() => {
@@ -81,11 +111,7 @@ export default function Shell({ conceptos }: { conceptos: Concepto[] }) {
       <header className="topbar">
         <button
           className="brand"
-          onClick={() => {
-            setTab("mapa");
-            setSelected(null);
-            setSelectedBloque(null);
-          }}
+          onClick={() => goTab("mapa")}
           aria-label="Volver al inicio"
           title="Volver al inicio"
         >
@@ -108,36 +134,29 @@ export default function Shell({ conceptos }: { conceptos: Concepto[] }) {
       </header>
 
       <nav className="tabs">
-        <button className={tab === "mapa" ? "active" : ""} onClick={() => setTab("mapa")}>
+        <button className={tab === "mapa" ? "active" : ""} onClick={() => goTab("mapa")}>
           Mapa de bloques
         </button>
-        <button className={tab === "buscador" ? "active" : ""} onClick={() => setTab("buscador")}>
+        <button className={tab === "buscador" ? "active" : ""} onClick={() => goTab("buscador")}>
           Buscador<span className="badge">{conceptos.length}</span>
         </button>
-        <button className={tab === "simulador" ? "active" : ""} onClick={() => setTab("simulador")}>
+        <button className={tab === "simulador" ? "active" : ""} onClick={() => goTab("simulador")}>
           Simulador
         </button>
-        <button className={tab === "asistente" ? "active" : ""} onClick={() => setTab("asistente")}>
+        <button className={tab === "asistente" ? "active" : ""} onClick={() => goTab("asistente")}>
           Asistente IA
         </button>
-        <button className={tab === "normativa" ? "active" : ""} onClick={() => setTab("normativa")}>
+        <button className={tab === "normativa" ? "active" : ""} onClick={() => goTab("normativa")}>
           Normativa
         </button>
       </nav>
 
       <main className="view">
         {tab === "mapa" && (
-          <Mapa
-            conceptos={conceptos}
-            onOpenBloque={(b) => {
-              setSelectedBloque(b);
-              setSelected(null);
-            }}
-            onOpenConcept={(c) => setSelected(c)}
-          />
+          <Mapa conceptos={conceptos} onOpenBloque={openBloque} onOpenConcept={openConcept} />
         )}
         {tab === "buscador" && (
-          <Buscador conceptos={conceptos} onOpen={(c) => setSelected(c)} onVerify={verify} />
+          <Buscador conceptos={conceptos} onOpen={openConcept} onVerify={verify} />
         )}
         {tab === "simulador" && <Simulador onVerify={verify} />}
         {tab === "asistente" && <Chat onVerify={verify} />}
@@ -158,7 +177,7 @@ export default function Shell({ conceptos }: { conceptos: Concepto[] }) {
         )}
       </main>
 
-      <ChatWidget onVerify={verify} hide={tab === "asistente"} />
+      <ChatWidget open={widgetOpen} onOpenChange={changeWidget} onVerify={verify} hide={tab === "asistente"} />
 
       <footer className="appfoot">
         <span>
@@ -174,15 +193,8 @@ export default function Shell({ conceptos }: { conceptos: Concepto[] }) {
       {palette && (
         <CommandPalette
           conceptos={conceptos}
-          onTab={(id) => {
-            setTab(id);
-            setPalette(false);
-          }}
-          onConcept={(c) => {
-            setSelected(c);
-            setSelectedBloque(null);
-            setPalette(false);
-          }}
+          onTab={(id) => goTab(id)}
+          onConcept={(c) => openConcept(c)}
           onClose={() => setPalette(false)}
         />
       )}
